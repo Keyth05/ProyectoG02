@@ -16,9 +16,6 @@ Esta aplicación permite capturar evidencia (foto), registrar ubicación y envia
 
 Las fotos se optimizan automáticamente (máximo 800px, compresión JPEG 70%), se convierten a Base64 y se guardan directamente en Firebase Realtime Database en el campo `fotoBase64`. Este es el enfoque elegido para este proyecto.
 
-Ventajas: simple y sin necesidad de configurar Firebase Storage.
-Desventajas: no es ideal para imágenes muy grandes y puede inflar la base de datos; si en el futuro decides migrar a Storage, la estructura debe cambiar para almacenar URL en lugar de Base64.
-
 ---
 
 ## 🎯 Funcionalidades
@@ -69,18 +66,16 @@ Desventajas: no es ideal para imágenes muy grandes y puede inflar la base de da
 1. En Firebase Console → **Realtime Database**
 2. Click en **"Crear base de datos"**
 3. Selecciona tu ubicación
-4. Inicia en **modo de prueba** (o usa estas reglas):
+4. Inicia en **modo de prueba**:
 
 ```json
-{
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null"
+    ".read": true,
+    ".write": true
   }
 }
 ```
 
-> Si optas por usar Firebase Storage, habilítalo en Firebase Console → Storage y aplica reglas adecuadas (ver sección de arriba).
 
 ### 4. Sincronizar y Compilar
 
@@ -130,9 +125,6 @@ incidentes/
       ├── usuarioEmail: String
       └── usuarioId: String
 ```
-
-**Nota:** Las fotos se optimizan automáticamente (máximo 800px, compresión JPEG 70%) antes de guardarse como Base64.
-
 ---
 
 ## 🔑 Permisos Requeridos
@@ -142,31 +134,8 @@ La app solicita automáticamente estos permisos:
 - **CAMERA**: Para tomar fotos de los incidentes
 - **ACCESS_FINE_LOCATION**: Para obtener ubicación GPS precisa
 - **ACCESS_COARSE_LOCATION**: Para ubicación aproximada
-- **INTERNET**: Para conectarse a Firebase
 
 ---
-
-## 📦 Dependencias Clave
-
-```kotlin
-// Firebase (Auth, Database)
-implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-implementation("com.google.firebase:firebase-auth-ktx")
-implementation("com.google.firebase:firebase-database-ktx")
-// CameraX
-implementation("androidx.camera:camera-camera2:1.3.1")
-implementation("androidx.camera:camera-lifecycle:1.3.1")
-implementation("androidx.camera:camera-view:1.3.1")
-
-// Google Play Services (Ubicación)
-implementation("com.google.android.gms:play-services-location:21.0.1")
-
-// Jetpack Compose + Material3
-implementation(libs.androidx.compose.material3)
-```
-
----
-
 ## 🚀 Flujo de la Aplicación
 
 ```
@@ -217,8 +186,6 @@ implementation(libs.androidx.compose.material3)
 ### Error: "API key not valid"
 ✅ Descarga `google-services.json` de Firebase Console y colócalo en `app/`
 
-### Error: "Firebase not initialized"
-✅ Verifica que `MyApp` esté declarado en `AndroidManifest.xml` con `android:name=".MyApp"`
 
 ### No se obtiene ubicación
 ✅ Verifica permisos de ubicación en Configuración del dispositivo
@@ -246,30 +213,6 @@ implementation(libs.androidx.compose.material3)
 
 ---
 
-## 🔐 Seguridad
-
-### Reglas de Firebase (Producción)
-
-Para producción, actualiza las reglas:
-
-**Realtime Database:**
-```json
-{
-  "rules": {
-    "incidentes": {
-      ".read": "auth != null",
-      "$incidenteId": {
-        ".write": "auth != null && !data.exists()",
-        ".validate": "newData.hasChildren(['id', 'descripcion', 'fotoUrl', 'latitud', 'longitud', 'fecha', 'usuarioEmail', 'usuarioId'])"
-      }
-    }
-  }
-}
-```
-
-**Storage:** removed — este proyecto no usa Firebase Storage; las imágenes se guardan en Realtime Database como Base64.
-
----
 
 ## 📝 Notas Importantes
 
