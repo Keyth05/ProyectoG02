@@ -69,11 +69,13 @@ Las fotos se optimizan automáticamente (máximo 800px, compresión JPEG 70%), s
 4. Inicia en **modo de prueba**:
 
 ```json
+ {
   "rules": {
     ".read": true,
     ".write": true
   }
 }
+
 ```
 
 
