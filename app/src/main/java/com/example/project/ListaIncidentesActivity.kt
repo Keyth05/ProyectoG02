@@ -8,21 +8,29 @@ import android.util.Base64
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.project.ui.theme.ProjectTheme
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -31,11 +39,8 @@ import com.google.firebase.database.ValueEventListener
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Lista de Incidentes - Muestra todos los incidentes reportados por todos los usuarios
- */
 class ListaIncidentesActivity : ComponentActivity() {
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -44,212 +49,243 @@ class ListaIncidentesActivity : ComponentActivity() {
             }
         }
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ListaIncidentesScreen() {
-        val context = LocalContext.current
         var incidentes by remember { mutableStateOf<List<Incidente>>(emptyList()) }
         var cargando by remember { mutableStateOf(true) }
-        
-        // Cargar incidentes de Firebase
+
+        val fondoColor = MaterialTheme.colorScheme.background
+        val primario = MaterialTheme.colorScheme.primary
+        val onPrimario = MaterialTheme.colorScheme.onPrimary
+
         LaunchedEffect(Unit) {
-            cargarIncidentes { listaIncidentes ->
-                incidentes = listaIncidentes.sortedByDescending { it.fecha }
+            cargarIncidentes { lista ->
+                incidentes = lista.sortedByDescending { it.fecha }
                 cargando = false
             }
         }
-        
+
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Incidentes Reportados") },
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            "🚨 Incidentes 🚨",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp,
+                            letterSpacing = 1.sp,
+                            color = onPrimario
+                        )
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = primario
+                    ),
                     navigationIcon = {
-                        TextButton(onClick = { finish() }) {
-                            Text("← Volver")
+                        IconButton(onClick = { finish() }) {
+                            Text("🔙", fontSize = 24.sp, color = onPrimario)
                         }
                     }
                 )
-            }
-        ) { paddingValues ->
+            },
+            containerColor = fondoColor
+        ) { padding ->
             if (cargando) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
                 }
             } else if (incidentes.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "No hay incidentes reportados",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { finish() }) {
-                            Text("Reportar Primer Incidente")
-                        }
+                    Text("🛡️", fontSize = 60.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Zona segura...",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        "No hay incidentes reportados",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { finish() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Text("Reportar peligro ⚠️", modifier = Modifier.padding(horizontal = 8.dp))
                     }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(padding),
+                    contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    items(incidentes) { incidente ->
-                        IncidenteCard(incidente = incidente)
+                    items(incidentes) { item ->
+                        IncidentePeligroCard(item)
                     }
                 }
             }
         }
     }
-    
+
     @Composable
-    fun IncidenteCard(incidente: Incidente) {
+    fun IncidentePeligroCard(incidente: Incidente) {
         val context = LocalContext.current
-        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        val fechaFormateada = dateFormat.format(Date(incidente.fecha))
-        
-        // Decodificar imagen fuera del composable
+        val dateFormat = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+        val fecha = dateFormat.format(Date(incidente.fecha))
+
         val bitmap = remember(incidente.fotoUrl) {
             try {
                 if (incidente.fotoUrl.isNotEmpty()) {
-                    val imageBytes = Base64.decode(incidente.fotoUrl, Base64.DEFAULT)
-                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
+                    val bytes = Base64.decode(incidente.fotoUrl, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                } else null
+            } catch (e: Exception) { null }
         }
-        
+
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 6.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    spotColor = Color.Red
+                ),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                // Foto del incidente desde base64
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Foto del incidente",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                } else if (incidente.fotoUrl.isNotEmpty()) {
-                    // Si hay error decodificando, mostrar mensaje
-                    Text(
-                        text = "Error al cargar imagen",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                }
-                
-                // Descripción
-                Text(
-                    text = incidente.descripcion,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Información del usuario
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            Column {
+                // FOTO
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "👤 ${incidente.usuarioEmail}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFEEEEEE)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("⚠️", fontSize = 40.sp)
+                                Text("Sin evidencia", color = Color.Gray, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Chip de Fecha
+                    Surface(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .align(Alignment.TopEnd),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFD32F2F),
+                        shadowElevation = 4.dp
+                    ) {
                         Text(
-                            text = "📅 $fechaFormateada",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "📅 $fecha",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Botón para ver ubicación en mapa
-                OutlinedButton(
-                    onClick = {
-                        // Abrir ubicación en Google Maps
-                        val uri = "geo:${incidente.latitud},${incidente.longitud}?q=${incidente.latitud},${incidente.longitud}"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-                        try {
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(
-                                context,
-                                "No se pudo abrir el mapa",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+
+                // CONTENIDO
+                Column(
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    Text("📍 Ver Ubicación en Mapa")
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(
+                            "📢",
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = incidente.descripcion,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Usuario
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("👁️", fontSize = 14.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Testigo: ${incidente.usuarioEmail.substringBefore("@")}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Botón Ver Ubicación
+                    OutlinedButton(
+                        onClick = {
+                            val uri = "geo:${incidente.latitud},${incidente.longitud}?q=${incidente.latitud},${incidente.longitud}"
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error al abrir mapa", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        // CORRECCIÓN AQUÍ: Uso estándar de BorderStroke
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("📍 VER EN EL MAPA", fontWeight = FontWeight.ExtraBold)
+                    }
                 }
             }
         }
     }
-    
-    /**
-     * Carga todos los incidentes desde Firebase
-     */
+
     private fun cargarIncidentes(onIncidentes: (List<Incidente>) -> Unit) {
         val database = FirebaseDatabase.getInstance().reference.child("incidentes")
-        
         database.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val listaIncidentes = mutableListOf<Incidente>()
-                
-                for (incidenteSnapshot in snapshot.children) {
-                    try {
-                        val incidente = incidenteSnapshot.getValue(Incidente::class.java)
-                        incidente?.let { listaIncidentes.add(it) }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                val lista = mutableListOf<Incidente>()
+                for (child in snapshot.children) {
+                    child.getValue(Incidente::class.java)?.let { lista.add(it) }
                 }
-                
-                onIncidentes(listaIncidentes)
+                onIncidentes(lista)
             }
-            
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(
-                    this@ListaIncidentesActivity,
-                    "Error: ${error.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            override fun onCancelled(error: DatabaseError) {}
         })
     }
 }

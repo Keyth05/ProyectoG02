@@ -5,20 +5,27 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.project.ui.theme.ProjectTheme
 
 /**
- * Pantalla de Login - Inicio de sesión simple
+ * Pantalla de Login - Con un ícono simple y directo de incidente
  */
 class LoginActivity : ComponentActivity() {
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -27,13 +34,13 @@ class LoginActivity : ComponentActivity() {
             }
         }
     }
-    
+
     @Composable
     fun LoginScreen() {
         var email by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var cargando by remember { mutableStateOf(false) }
-        
+
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
@@ -45,13 +52,27 @@ class LoginActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Título
+                // --- AQUÍ ESTÁ EL CAMBIO: ÍCONO PRINCIPAL ---
+                IconoIncidente()
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Título de la App
                 Text(
-                    text = "Iniciar Sesión",
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.padding(bottom = 32.dp)
+                    text = "Reporte Urbano",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.ExtraBold
                 )
-                
+
+                // Subtítulo explicativo
+                Text(
+                    text = "Tu ciudad, tus reportes",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+                )
+
                 // Campo de Email
                 OutlinedTextField(
                     value = email,
@@ -60,9 +81,15 @@ class LoginActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    enabled = !cargando
+                    enabled = !cargando,
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
-                
+
                 // Campo de Contraseña
                 OutlinedTextField(
                     value = password,
@@ -72,9 +99,15 @@ class LoginActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 24.dp),
-                    enabled = !cargando
+                    enabled = !cargando,
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
-                
+
                 // Botón de Login
                 Button(
                     onClick = {
@@ -90,8 +123,13 @@ class LoginActivity : ComponentActivity() {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = !cargando
+                        .height(54.dp)
+                        .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium),
+                    enabled = !cargando,
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     if (cargando) {
                         CircularProgressIndicator(
@@ -99,12 +137,12 @@ class LoginActivity : ComponentActivity() {
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Entrar")
+                        Text("INICIAR SESIÓN", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 // Botón para ir a Registro
                 TextButton(
                     onClick = {
@@ -112,23 +150,45 @@ class LoginActivity : ComponentActivity() {
                     },
                     enabled = !cargando
                 ) {
-                    Text("¿No tienes cuenta? Regístrate")
+                    Text(
+                        "¿No tienes cuenta? Crear cuenta",
+                        color = MaterialTheme.colorScheme.tertiary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
     }
-    
+
     /**
-     * Función simple para iniciar sesión con Firebase
+     * ESTE ES EL COMPONENTE QUE DIBUJA EL ÍCONO
+     * Un círculo suave con el emoji de construcción dentro.
      */
+    @Composable
+    fun IconoIncidente() {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(120.dp) // Tamaño del círculo
+                .background(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), // Fondo suave
+                    shape = CircleShape
+                )
+        ) {
+            Text(
+                text = "🚧", // Ícono simple de construcción/incidente
+                fontSize = 60.sp // Tamaño del emoji
+            )
+        }
+    }
+
     private fun iniciarSesion(email: String, password: String, onLoading: (Boolean) -> Unit) {
         onLoading(true)
-        
+
         FirebaseConfig.getAuth().signInWithEmailAndPassword(email, password)
             .addOnSuccessListener {
                 onLoading(false)
                 Toast.makeText(this, "¡Bienvenido!", Toast.LENGTH_SHORT).show()
-                // Ir al Dashboard
                 startActivity(Intent(this, DashboardActivity::class.java))
                 finish()
             }
